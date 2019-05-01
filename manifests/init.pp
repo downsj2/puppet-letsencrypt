@@ -42,6 +42,8 @@
 # [*configure_epel*]
 #   A feature flag to include the 'epel' class and depend on it for package
 #   installation.
+# [*self_upgrade*]
+#   A feature flag to disable the auto-upgrade when running letsencrypt-auto.
 # [*install_method*]
 #   Method to install the letsencrypt client, either package or vcs.
 # [*agree_tos*]
@@ -68,6 +70,7 @@ class letsencrypt (
   Boolean $manage_install                = $letsencrypt::params::manage_install,
   Boolean $manage_dependencies           = $letsencrypt::params::manage_dependencies,
   Boolean $configure_epel                = $letsencrypt::params::configure_epel,
+  Boolean $self_upgrade                  = $letsencrypt::params::self_upgrade,
   Enum['package', 'vcs'] $install_method = $letsencrypt::params::install_method,
   Boolean $agree_tos                     = $letsencrypt::params::agree_tos,
   Boolean $unsafe_registration           = $letsencrypt::params::unsafe_registration,
@@ -94,9 +97,15 @@ class letsencrypt (
     Class['letsencrypt::config'] -> Exec['initialize letsencrypt']
   }
 
+  if $self_upgrade {
+    $command_init_args = '-h'
+  } else {
+    $command_init_args = '--no-self-upgrade -h'
+  }
+
   # TODO: do we need this command when installing from package?
   exec { 'initialize letsencrypt':
-    command     => "${command_init} -h",
+    command     => "${command_init} ${command_init_args}",
     path        => $::path,
     environment => concat([ "VENV_PATH=${venv_path}" ], $environment),
     refreshonly => true,
